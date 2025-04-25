@@ -1,22 +1,28 @@
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable jsx-a11y/control-has-associated-label */
 import React, { useEffect, useRef, useState } from 'react';
-import classNames from 'classnames';
+
 import { UserWarning } from './UserWarning';
 import { USER_ID } from './api/todos';
 import * as todoService from './api/todos';
 
 import { TodoList } from './components/TodoList';
+import { TodoCard } from './components/TodoCard';
+import { Footer } from './components/Footer';
+import ErrorNotification from './components/ErrorNotification';
 
 import { Todo } from './types/Todo';
 import { ErrorMessage } from './types/ErrorMessage';
-import { TodoCard } from './components/TodoCard';
-type Filter = 'all' | 'active' | 'completed';
+
+// Enum для фільтрів
+export enum FilterType {
+  All = 'all',
+  Active = 'active',
+  Completed = 'completed',
+}
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState<Filter>('all');
+  const [filter, setFilter] = useState<FilterType>(FilterType.All);
   const [newTodoTitle, setNewTodoTitle] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
@@ -34,8 +40,6 @@ export const App: React.FC = () => {
     }, 3000);
   };
 
-  // on load
-
   useEffect(() => {
     todoService
       .getTodos()
@@ -45,8 +49,6 @@ export const App: React.FC = () => {
     formInput.current?.focus();
   }, []);
 
-  // focus after submit, doesn't work in addTodo.finally
-
   useEffect(() => {
     if (!isLoading && !tempTodo) {
       formInput.current?.focus();
@@ -55,17 +57,17 @@ export const App: React.FC = () => {
 
   const filteredTodos = todos.filter(todo => {
     switch (filter) {
-      case 'active':
+      case FilterType.Active:
         return !todo.completed;
-      case 'completed':
+      case FilterType.Completed:
         return todo.completed;
       default:
         return true;
     }
   });
 
-  const onFilterChange = (filt: Filter) => {
-    setFilter(filt);
+  const onFilterChange = (newFilter: FilterType) => {
+    setFilter(newFilter);
   };
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -108,7 +110,6 @@ export const App: React.FC = () => {
   const handleDeleteTodo = async (todoId: number) => {
     try {
       await todoService.deleteTodo(todoId);
-
       setTodos(prevTodos => prevTodos.filter(todo => todo.id !== todoId));
     } catch (err) {
       showError(ErrorMessage.DELETE_ERROR);
@@ -146,14 +147,12 @@ export const App: React.FC = () => {
 
       <div className="todoapp__content">
         <header className="todoapp__header">
-          {/* this button should have `active` class only if all todos are completed */}
           <button
             type="button"
             className="todoapp__toggle-all active"
             data-cy="ToggleAllButton"
           />
 
-          {/* Add a todo on form submit */}
           <form onSubmit={handleSubmit}>
             <input
               data-cy="NewTodoField"
@@ -178,80 +177,18 @@ export const App: React.FC = () => {
           </section>
         )}
 
-        {/* Hide the footer if there are no todos */}
         {todos.length !== 0 && (
-          <footer className="todoapp__footer" data-cy="Footer">
-            <span className="todo-count" data-cy="TodosCounter">
-              {todosCounter} items left
-            </span>
-
-            {/* Active link should have the 'selected' class */}
-            <nav className="filter" data-cy="Filter">
-              <a
-                href="#/"
-                className={classNames('filter__link', {
-                  selected: filter === 'all',
-                })}
-                data-cy="FilterLinkAll"
-                onClick={() => onFilterChange('all')}
-              >
-                All
-              </a>
-
-              <a
-                href="#/active"
-                className={classNames('filter__link', {
-                  selected: filter === 'active',
-                })}
-                data-cy="FilterLinkActive"
-                onClick={() => onFilterChange('active')}
-              >
-                Active
-              </a>
-
-              <a
-                href="#/completed"
-                className={classNames('filter__link', {
-                  selected: filter === 'completed',
-                })}
-                data-cy="FilterLinkCompleted"
-                onClick={() => onFilterChange('completed')}
-              >
-                Completed
-              </a>
-            </nav>
-
-            {/* this button should be disabled if there are no completed todos */}
-            <button
-              type="button"
-              className="todoapp__clear-completed"
-              data-cy="ClearCompletedButton"
-              disabled={completedCount === 0}
-              onClick={handleClearCompleted}
-            >
-              Clear completed
-            </button>
-          </footer>
+          <Footer
+            todosCounter={todosCounter}
+            completedCount={completedCount}
+            filter={filter}
+            onFilterChange={onFilterChange}
+            handleClearCompleted={handleClearCompleted}
+          />
         )}
       </div>
 
-      {/* DON'T use conditional rendering to hide the notification */}
-      {/* Add the 'hidden' class to hide the message smoothly */}
-      <div
-        data-cy="ErrorNotification"
-        className={classNames(
-          'notification is-danger is-light has-text-weight-normal',
-          { hidden: error === '' },
-        )}
-      >
-        <button
-          data-cy="HideErrorButton"
-          type="button"
-          className="delete"
-          onClick={() => setError('')}
-        />
-        {error}
-      </div>
+      <ErrorNotification error={error} setError={setError} />
     </div>
   );
 };

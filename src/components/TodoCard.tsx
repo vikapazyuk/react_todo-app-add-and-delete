@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Todo } from '../types/Todo';
-
 import classNames from 'classnames';
 
 type Props = {
@@ -11,18 +10,19 @@ type Props = {
 };
 
 export const TodoCard: React.FC<Props> = ({ todo, onDelete }) => {
+  const { id, title, completed } = todo; // Деструктуризація todo
   const [isDeleting, setIsDeleting] = useState(false);
-  const isLoading = todo.id === 0 || isDeleting;
+  const isLoading = id === 0 || isDeleting;
 
   const handleDelete = async () => {
-    if (todo.id === 0) {
+    if (id === 0) {
       return;
     }
 
     setIsDeleting(true);
 
     try {
-      await onDelete(todo.id);
+      await onDelete(id);
     } catch (error) {
       setIsDeleting(false);
     }
@@ -30,22 +30,20 @@ export const TodoCard: React.FC<Props> = ({ todo, onDelete }) => {
 
   return (
     <>
-      <div
-        data-cy="Todo"
-        className={classNames('todo', { completed: todo.completed })}
-      >
+      <div data-cy="Todo" className={classNames('todo', { completed })}>
         <label className="todo__status-label">
           <input
             data-cy="TodoStatus"
             type="checkbox"
             className="todo__status"
-            checked={todo.completed}
+            checked={completed}
           />
         </label>
 
         <span data-cy="TodoTitle" className="todo__title">
-          {todo.title}
+          {title}
         </span>
+
         <button
           type="button"
           className="todo__remove"
